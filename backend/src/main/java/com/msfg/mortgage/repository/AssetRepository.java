@@ -1,0 +1,15 @@
+package com.msfg.mortgage.repository;
+
+import com.msfg.mortgage.model.entity.Asset;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface AssetRepository extends JpaRepository<Asset, Long> {
+
+    List<Asset> findByBorrowerId(Long borrowerId);
+
+    void deleteByBorrowerId(Long borrowerId);
+}

@@ -1,0 +1,66 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: msfg-mortgage-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${DB_NAME:-msfg_mortgage}
+      MYSQL_USER: ${DB_USER:-msfg_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-msfg_password}
+    ports:
+      - "3309:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mortgage-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: msfg-mortgage-backend
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-msfg_mortgage}
+      DB_USER: ${DB_USER:-msfg_user}
+      DB_PASSWORD: ${DB_PASSWORD:-msfg_password}
+      JWT_SECRET: ${JWT_SECRET:-change-me-to-a-secure-random-string-at-least-64-chars-long-for-production}
+      UPLOAD_DIR: /app/uploads
+    ports:
+      - "8084:8084"
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - mortgage-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: msfg-mortgage-frontend
+    environment:
+      VITE_API_URL: http://backend:8084
+    ports:
+      - "3008:3008"
+    depends_on:
+      - backend
+    networks:
+      - mortgage-network
+
+volumes:
+  mysql_data:
+  uploads_data:
+
+networks:
+  mortgage-network:
+    driver: bridge
